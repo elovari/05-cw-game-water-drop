@@ -38,6 +38,7 @@ body {
     flex-direction: column;
     align-items: center;
     gap: 20px;
+    padding-bottom: 40px; /* Add padding under the game */
 }
 
 .score-panel {
@@ -55,6 +56,7 @@ body {
     flex: 0 1 auto;
     font-size: 24px;
     font-weight: bold;
+    color: #FFC907;
 }
 
 #game-container {
@@ -70,8 +72,8 @@ body {
 
 #start-btn {
     padding: 8px 16px;
-    background-color: #4CAF50;
-    color: white;
+    background-color: #2E9DF7;
+    color: #ffffff;
     border: none;
     border-radius: 4px;
     cursor: pointer;
@@ -86,13 +88,14 @@ body {
     flex: 0 1 auto;  /* Don't grow, can shrink, auto basis */
     font-size: 24px;
     font-weight: bold;
+    color: #FFC907;
 }
 
 .water-drop {
     position: absolute;
     width: 60px;  /* increased from 40px */
     height: 60px; /* increased from 40px */
-    background-color: #0099ff;
+    background-color: #3eaffa;
     border-radius: 50%;
     animation: dropFall linear forwards;
     transform-origin: center;
@@ -110,8 +113,13 @@ body {
     background-color: #ff4444;
 }
 
+.black-drop {
+  background-color: #181818;
+  border: 2px solid #000;
+}
+
 .game-title {
-    color: #131313;
+    color: #FFC907;
     font-size: 48px;
     margin-top: 0;
     margin-bottom: 5px;  /* reduced from 20px */
@@ -119,10 +127,39 @@ body {
 }
 
 .game-tagline {
-    color: #666;
+    color: #2E9DF7;
     font-size: 18px;
     margin-bottom: 20px;
     text-align: center;
+}
+
+#basket {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 80px;
+  height: 30px;
+  background: #031a35;
+  border-radius: 0 0 30px 30px;
+  border: 2px solid #031a35;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+}
+
+#coins-collected {
+  position: absolute;
+  right: 18px;
+  bottom: 14px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #e6b800;
+  font-size: 1.3rem;
+  font-weight: bold;
+  padding: 8px 18px;
+  border-radius: 18px;
+  border: 2px solid #ffe066;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  z-index: 30;
+  pointer-events: none;
 }
 
 @keyframes dropFall {
@@ -142,4 +179,32 @@ body {
     #game-container {
         height: 70vh;
     }
+}
+
+.coin {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: radial-gradient(circle at 30% 30%, #ffe066 70%, #ffd700 100%);
+  border-radius: 50%;
+  border: 3px solid #e6b800;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18), 0 0 0 4px #fffbe6 inset;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  color: #e6b800;
+  font-weight: bold;
+  z-index: 20;
+  /* Add this line to animate coins falling */
+  animation: dropFall 4s linear forwards;
+}
+
+.coin::after {
+  content: "¢";
+  font-family: Arial, sans-serif;
+  font-size: 1.3em;
+  color: #e6b800;
+  text-shadow: 0 1px 0 #fffbe6, 0 2px 2px #bfa100;
+  pointer-events: none;
 }
