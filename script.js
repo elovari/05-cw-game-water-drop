@@ -9,6 +9,15 @@ let coinMaker; // interval for coins
 let blackDropMaker; // interval for black drops
 let highScore = Number(localStorage.getItem("highScore") || 0);
 
+// Difficulty configurations
+const difficultyConfig = {
+  easy:   { time: 40, dropInterval: 1200, coinInterval: 6000, blackInterval: 4000, goal: 10 },
+  normal: { time: 30, dropInterval: 1000, coinInterval: 5000, blackInterval: 2500, goal: 15 },
+  hard:   { time: 20, dropInterval: 700,  coinInterval: 4000, blackInterval: 1500, goal: 20 }
+};
+
+let currentGoal = 15; // displayed goal / win target
+
 // Wait for button click to start the game
 document.getElementById("start-btn").addEventListener("click", startGame);
 
@@ -16,26 +25,30 @@ function startGame() {
   // Prevent multiple games from running at once
   if (gameRunning) return;
 
+  // read and apply difficulty immediately (also updates UI)
+  const selected = document.getElementById("difficulty-select").value || "normal";
+  const cfg = applyDifficulty(selected);
+
   gameRunning = true;
   score = 0;
   coins = 0;
-  timeLeft = 30;
   document.getElementById("score").textContent = score;
   document.getElementById("coins-count").textContent = coins;
-  document.getElementById("time").textContent = timeLeft;
 
   // Remove any existing game over popup
   const oldPopup = document.getElementById("game-over-popup");
   if (oldPopup) oldPopup.remove();
 
-  // Create new drops every second (1000 milliseconds)
-  dropMaker = setInterval(createDrop, 1000);
+  // clear any previous intervals just in case
+  clearInterval(dropMaker);
+  clearInterval(coinMaker);
+  clearInterval(blackDropMaker);
+  clearInterval(timerInterval);
 
-  // Create coins every 5 seconds
-  coinMaker = setInterval(createCoin, 5000);
-
-  // Create black drops every 2.5 seconds
-  blackDropMaker = setInterval(createBlackDrop, 2500);
+  // Create new drops/coins/black drops using cfg returned from applyDifficulty
+  dropMaker = setInterval(createDrop, cfg.dropInterval);
+  coinMaker = setInterval(createCoin, cfg.coinInterval);
+  blackDropMaker = setInterval(createBlackDrop, cfg.blackInterval);
 
   // Start timer countdown
   timerInterval = setInterval(() => {
@@ -66,12 +79,13 @@ function endGame() {
   document.querySelectorAll('.coin').forEach(coin => coin.remove());
   document.querySelectorAll('.black-drop').forEach(drop => drop.remove());
 
-  // Show game over popup
-  showGameOverPopup();
+  // Determine win/lose based on goal
+  const won = score >= currentGoal;
+  showGameOverPopup(won);
 }
 
 // Show a popup in the center of the game container
-function showGameOverPopup() {
+function showGameOverPopup(won) {
   const popup = document.createElement("div");
   popup.id = "game-over-popup";
   popup.style.position = "absolute";
@@ -79,42 +93,52 @@ function showGameOverPopup() {
   popup.style.left = "50%";
   popup.style.transform = "translate(-50%, -50%)";
   popup.style.background = "#fff";
-  popup.style.padding = "40px 60px";
+  popup.style.padding = "28px 40px";
   popup.style.borderRadius = "12px";
-  popup.style.fontSize = "2rem";
-  popup.style.fontWeight = "bold";
-  popup.style.color = "#8BD1CB";
+  popup.style.fontSize = "1.6rem";
+  popup.style.fontWeight = "700";
+  popup.style.color = "#131313";
   popup.style.boxShadow = "0 4px 24px rgba(0,0,0,0.18)";
   popup.style.zIndex = "100";
   popup.style.display = "flex";
   popup.style.flexDirection = "column";
   popup.style.alignItems = "center";
+  popup.style.gap = "12px";
+  popup.style.minWidth = "260px";
 
-  // Game Over text
-  const overText = document.createElement("div");
-  overText.textContent = "Game Over";
-  popup.appendChild(overText);
+  // Result text
+  const resultText = document.createElement("div");
+  resultText.textContent = won ? "You Win!" : "Game Over";
+  resultText.style.color = won ? "#159A48" : "#F5402C";
+  resultText.style.fontSize = "1.6rem";
+  popup.appendChild(resultText);
+
+  // Score summary
+  const summary = document.createElement("div");
+  summary.style.fontSize = "1rem";
+  summary.style.color = "#333";
+  summary.textContent = `Score: ${score}   |   Goal: ${currentGoal}`;
+  popup.appendChild(summary);
 
   // High Score display
   const highScoreDiv = document.createElement("div");
-  highScoreDiv.style.fontSize = "1.2rem";
-  highScoreDiv.style.color = "#2E9DF7";
-  highScoreDiv.style.marginTop = "18px";
+  highScoreDiv.style.fontSize = "0.95rem";
+  highScoreDiv.style.color = "#666";
   highScoreDiv.textContent = `High Score: ${highScore}`;
   popup.appendChild(highScoreDiv);
 
   // Add Replay button
   const replayBtn = document.createElement("button");
   replayBtn.textContent = "Replay";
-  replayBtn.style.marginTop = "24px";
-  replayBtn.style.padding = "10px 28px";
-  replayBtn.style.fontSize = "1.2rem";
-  replayBtn.style.background = "#8BD1CB";
+  replayBtn.style.marginTop = "6px";
+  replayBtn.style.padding = "8px 20px";
+  replayBtn.style.fontSize = "1rem";
+  replayBtn.style.background = "#2E9DF7";
   replayBtn.style.color = "#fff";
   replayBtn.style.border = "none";
   replayBtn.style.borderRadius = "6px";
   replayBtn.style.cursor = "pointer";
-  replayBtn.style.fontWeight = "bold";
+  replayBtn.style.fontWeight = "700";
   replayBtn.addEventListener("click", () => {
     popup.remove();
     startGame();
@@ -341,4 +365,109 @@ document.addEventListener("mousemove", (e) => {
 
 document.addEventListener("mouseup", () => {
   isDragging = false;
+});
+
+// Apply difficulty settings immediately (returns cfg)
+function applyDifficulty(selected) {
+  const cfg = difficultyConfig[selected] || difficultyConfig.normal;
+
+  // Update goal and UI
+  currentGoal = cfg.goal;
+  document.getElementById("goal").textContent = currentGoal;
+
+  // If game not running, set the full time; if running, shorten remaining time if new config is smaller
+  if (!gameRunning) {
+    timeLeft = cfg.time;
+  } else {
+    timeLeft = Math.min(timeLeft, cfg.time);
+  }
+  document.getElementById("time").textContent = timeLeft;
+
+  // If game is running, restart spawn intervals with new cadence
+  if (gameRunning) {
+    clearInterval(dropMaker);
+    clearInterval(coinMaker);
+    clearInterval(blackDropMaker);
+
+    dropMaker = setInterval(createDrop, cfg.dropInterval);
+    coinMaker = setInterval(createCoin, cfg.coinInterval);
+    blackDropMaker = setInterval(createBlackDrop, cfg.blackInterval);
+  }
+
+  return cfg;
+}
+
+// New: listen for difficulty changes and apply immediately
+document.getElementById("difficulty-select").addEventListener("change", (e) => {
+  applyDifficulty(e.target.value);
+});
+
+// Milestone message logic
+document.addEventListener('DOMContentLoaded', () => {
+  const scoreEl = document.getElementById('score');
+  const goalEl = document.getElementById('goal');
+  const msgEl = document.getElementById('milestone-message');
+  if (!scoreEl || !goalEl || !msgEl) return;
+
+  let shownMilestones = new Set();
+  let currentGoal = parseInt(goalEl.textContent, 10) || 0;
+
+  function resetMilestones() {
+    shownMilestones.clear();
+    currentGoal = parseInt(goalEl.textContent, 10) || 0;
+  }
+
+  function showMsg(text) {
+    msgEl.textContent = text;
+    msgEl.hidden = false;
+    msgEl.classList.remove('visible');
+    // force reflow to restart animation
+    void msgEl.offsetWidth;
+    msgEl.classList.add('visible');
+    clearTimeout(msgEl._hideTimeout);
+    msgEl._hideTimeout = setTimeout(() => {
+      msgEl.classList.remove('visible');
+      // hide after transition
+      setTimeout(() => (msgEl.hidden = true), 320);
+    }, 2500);
+  }
+
+  function checkMilestones() {
+    const score = parseInt(scoreEl.textContent, 10) || 0;
+    const goal = parseInt(goalEl.textContent, 10) || 0;
+    if (goal <= 0) return;
+
+    // If the goal changed externally, reset tracking
+    if (goal !== currentGoal) {
+      resetMilestones();
+    }
+
+    const pct = score / goal;
+
+    const milestones = [
+      { key: '25', reached: pct >= 0.25, text: 'Great start! 25% there.' },
+      { key: '50', reached: pct >= 0.5, text: 'Halfway there!' },
+      { key: '75', reached: pct >= 0.75, text: 'Almost there! 75% reached.' },
+      { key: 'goal', reached: score >= goal, text: 'Goal reached! Well done!' }
+    ];
+
+    for (const m of milestones) {
+      if (m.reached && !shownMilestones.has(m.key)) {
+        shownMilestones.add(m.key);
+        showMsg(m.text);
+        break; // show one milestone at a time
+      }
+    }
+  }
+
+  // Observe score changes
+  const scoreObserver = new MutationObserver(checkMilestones);
+  scoreObserver.observe(scoreEl, { characterData: true, childList: true, subtree: true });
+
+  // Observe goal changes to reset milestone tracking
+  const goalObserver = new MutationObserver(resetMilestones);
+  goalObserver.observe(goalEl, { characterData: true, childList: true, subtree: true });
+
+  // initial check
+  checkMilestones();
 });
